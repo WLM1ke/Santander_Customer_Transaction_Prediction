@@ -42,7 +42,8 @@ CLF_PARAMS = dict(
 
 def train_catboost():
     """Обучение catboost."""
-    x, y = processing.read_train()
+    x, y, test_x = processing.make_features()
+    x = x.drop(DROP, axis=1)
 
     oof_y = pd.Series(0, index=y.index, name="oof_y")
     trees = []
@@ -80,10 +81,10 @@ def train_catboost():
     logging.info(f"Количество деревьев: {trees}")
     logging.info(f"Среднее количество деревьев: {np.mean(trees):.0f} +/- {np.std(trees):.0f}")
     logging.info(f"AUC на кроссвалидации: " + str(np.round(scores, 5)))
-    logging.info(f"AUC среднее: {np.mean(scores):0.3f} +/- {np.std(scores):0.3f}")
+    logging.info(f"AUC среднее: {np.mean(scores):0.4f} +/- {np.std(scores):0.4f}")
 
     oof_auc = metrics.roc_auc_score(y, oof_y, "micro")
-    logging.info(f"OOF AUC: {oof_auc:0.3f}")
+    logging.info(f"OOF AUC: {oof_auc:0.4f}")
 
     pd.concat([y, oof_y], axis=1).to_pickle(
         conf.DATA_PROCESSED + "oof.pickle"
@@ -104,9 +105,8 @@ def train_catboost():
     )
     clf.fit(**fit_params)
 
-    test_x = processing.read_test()
     sub = pd.DataFrame(clf.predict_proba(test_x)[:, 1], index=test_x.index, columns=["target"])
-    sub.to_csv(conf.DATA_PROCESSED + f"{time.strftime('%Y-%m-%d_%H-%M')}_AUC-{oof_auc:0.3f}.csv")
+    sub.to_csv(conf.DATA_PROCESSED + f"{time.strftime('%Y-%m-%d_%H-%M')}_AUC-{oof_auc:0.4f}.csv")
 
     logging.info("Важность признаков:")
     for i, v in clf.get_feature_importance(pool_full, prettified=True):
@@ -121,5 +121,21 @@ def train_catboost():
         logging.info(x.columns[i].ljust(20) + x.columns[j].ljust(20) + str(value))
 
 
+def feat_sel():
+    """Выбор признаков."""
+    x, y = processing.read_train()
+    x = x.drop(DROP, axis=1)
+    clf = lightgbm.LGBMClassifier(boosting_type="rf",
+                                  bagging_freq=1,
+                                  bagging_fraction=0.632,
+                                  feature_fraction=0.632)
+    feat_selector = boruta.BorutaPy(clf, n_estimators=ITERATIONS, verbose=2)
+    feat_selector.fit(x.values, y.values)
+    print(x.columns[feat_selector.support_weak_])
+    print(x.columns[feat_selector.support_])
+    print(pd.Series(feat_selector.ranking_, index=x.columns).sort_values())
+
+
 if __name__ == '__main__':
     train_catboost()
+    # feat_sel()
