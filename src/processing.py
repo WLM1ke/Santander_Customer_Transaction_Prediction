@@ -1,13 +1,11 @@
 """Процессинг исходных данных."""
 import pandas as pd
+import numpy as np
 from sklearn import preprocessing
 
 from src import conf
 
-DTYPES = dict(
-    target="int8",
-    **{f"var_{i}": "float32" for i in range(200)}
-)
+DTYPES = dict(target="int8", **{f"var_{i}": "float32" for i in range(200)})
 
 
 def read_train():
@@ -27,27 +25,22 @@ def make_features():
     x_train, y_train = read_train()
     x_test = read_test()
     x_all = pd.concat([x_train, x_test], axis=0)
-    base_col = x_all.columns
 
-    x_all.iloc[:, :] = preprocessing.normalize(x_all, axis=0)
+    """
+    x_all = x_all.join(
+        x_all["var_12"].value_counts(), on="var_12", rsuffix="_count_all"
+    )
+    x_all = x_all.join(
+        x_all["var_108"].value_counts(), on="var_108", rsuffix="_count_all"
+    )
+    x_all = x_all.join(
+        x_all["var_126"].value_counts(), on="var_126", rsuffix="_count_all"
+    )"""
 
-    x_all["mean"] = x_all[base_col].mean(axis=1)
-    x_all["std"] = x_all[base_col].std(axis=1)
-    x_all["dist"] = (x_all[base_col] ** 2).mean(axis=1)
-    x_all["median"] = x_all[base_col].median(axis=1)
-    x_all["q10"] = x_all[base_col].quantile(0.1, axis=1)
-    x_all["q20"] = x_all[base_col].quantile(0.2, axis=1)
-    x_all["q30"] = x_all[base_col].quantile(0.3, axis=1)
-    x_all["q40"] = x_all[base_col].quantile(0.4, axis=1)
-    x_all["q60"] = x_all[base_col].quantile(0.6, axis=1)
-    x_all["q70"] = x_all[base_col].quantile(0.7, axis=1)
-    x_all["q80"] = x_all[base_col].quantile(0.8, axis=1)
-    x_all["q90"] = x_all[base_col].quantile(0.9, axis=1)
-
-    return x_all.iloc[:len(y_train)], y_train, x_all.iloc[len(y_train):]
+    return x_all.iloc[: len(y_train)], y_train, x_all.iloc[len(y_train) :]
 
 
-if __name__ == '__main__':
-    x = read_test()
-    print(x)
-    print(x.describe())
+if __name__ == "__main__":
+    x_ = read_test()
+    print(x_)
+    print(x_.describe())

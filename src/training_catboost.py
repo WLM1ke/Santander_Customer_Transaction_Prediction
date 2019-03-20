@@ -1,4 +1,4 @@
-"""Обучение моделей."""
+"""Обучение моделей c помощью catboost."""
 import logging
 import time
 
@@ -14,13 +14,13 @@ import lightgbm
 from src import conf
 from src import processing
 
-SPEED = 10
+SPEED = 1
 
 # Настройки валидации
 SEED = 284702
 N_SPLITS = 5
 DEPTH = 6
-ITERATIONS = 30000 // SPEED
+ITERATIONS = 40000 // SPEED
 LEARNING_RATE = 0.01 * SPEED
 FOLDS = model_selection.StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=SEED)
 DROP = [
@@ -30,7 +30,7 @@ CLF_PARAMS = dict(
     loss_function="Logloss",
     eval_metric="AUC",
     random_state=SEED,
-    depth=6,
+    depth=DEPTH,
     od_type="Iter",
     od_wait=ITERATIONS // 10,
     verbose=ITERATIONS // 100,
@@ -100,8 +100,7 @@ def train_catboost():
 
     )
     fit_params = dict(
-        X=pool_full,
-        cat_features=None
+        X=pool_full
     )
     clf.fit(**fit_params)
 
