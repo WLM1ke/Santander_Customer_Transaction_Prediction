@@ -1,4 +1,4 @@
-"""Обучение моделей c помощью catboost."""
+"""Обучение моделей c помощью LightGBM."""
 import logging
 import time
 
@@ -13,8 +13,9 @@ from src import conf
 from src import processing
 
 SEED = 284_702
-N_SPLITS = 5
-ITERATIONS = 30000
+np.random.seed(SEED)
+N_SPLITS = 11
+ITERATIONS = 40000
 FOLDS = model_selection.StratifiedKFold(
     n_splits=N_SPLITS, shuffle=True, random_state=SEED
 )
@@ -73,6 +74,9 @@ def train_lightgbm():
     x, y, test_x = processing.make_features()
 
     oof_y = pd.Series(0, index=y.index, name="oof_y")
+    sub = pd.DataFrame(
+        0, index=test_x.index, columns=["target"]
+    )
     trees = []
 
     for trn_idx, val_idx in FOLDS.split(x, y):
@@ -92,28 +96,15 @@ def train_lightgbm():
             early_stopping_rounds=ITERATIONS // 10,
         )
         oof_y.iloc[val_idx] = clf.predict(x_valid, num_iteration=clf.best_iteration)
+        sub["target"] = sub["target"] + clf.predict(test_x, num_iteration=clf.best_iteration) / N_SPLITS
         trees.append(clf.best_iteration)
         print("\n")
 
-    logging.info(f"Количество деревьев: {trees}")
-    logging.info(
-        f"Среднее количество деревьев: {np.mean(trees):.0f} +/- {np.std(trees):.0f}"
-    )
-
     oof_auc = metrics.roc_auc_score(y, oof_y, "micro")
     logging.info(f"OOF AUC: {oof_auc:0.4f}")
-
-    x, y = augment(x.values, y.values)
-    trn_data = lgb.Dataset(x, label=y)
-    num_iteration = sorted(trees)[N_SPLITS // 2 + 1]
-    clf = lgb.train(PARAMS, trn_data, num_iteration, verbose_eval=ITERATIONS // 100)
-
-    sub = pd.DataFrame(
-        clf.predict(test_x, num_iteration), index=test_x.index, columns=["target"]
-    )
     sub.to_csv(
         conf.DATA_PROCESSED
-        + f"{time.strftime('%Y-%m-%d_%H-%M')}_AUC-{oof_auc:0.4f}_gbm.csv"
+        + f"{time.strftime('%Y-%m-%d_%H-%M')}_AUC-{oof_auc:0.4f}_gbm{N_SPLITS}.csv"
     )
 
 
