@@ -21,7 +21,7 @@ CLF_PARAMS = {
     "feature_fraction": 0.041,
     "learning_rate": 0.0083,
     "max_depth": -1,
-    "metric": "auc",
+    "metric": "binary_logloss",
     "min_data_in_leaf": 80,
     "min_sum_hessian_in_leaf": 10.0,
     "num_leaves": 13,
@@ -62,7 +62,7 @@ def train_lightgbm():
         )
 
         trees.append(clf.best_iteration)
-        scores.append(clf.best_score["valid_1"]["auc"])
+        scores.append(clf.best_score["valid_1"]["binary_logloss"])
 
         oof_y.iloc[valid_index] = clf.predict(x_valid, num_iteration=clf.best_iteration)
         sub["target"] = sub["target"] + clf.predict(test_x, num_iteration=clf.best_iteration) / FOLDS.get_n_splits()

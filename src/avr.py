@@ -23,6 +23,7 @@ if __name__ == '__main__':
     rez = avr_sub(
         [
             "2019-03-20_18-53_AUC-0.9013_gbm11_best.csv",
+            "2019-03-25_22-21_AUC-0.9007_gbm11.csv"
         ]
     )
     rez.to_csv(
